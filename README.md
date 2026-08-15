@@ -46,15 +46,9 @@
 
 修复脚本只改一种记录：`user/message` 中 `source.kind === 'plugin'` 且 `source.plugin` 为 `warmup-replay` / `warmup-tool-bootstrap`、同时 `data.id` 缺失或为空的 warmup 消息，给它补一个 UUID；其余字节保持原样。若 dsh 侧仍显示旧缓存（通常不会），可删除 `$env:DSH_HOME\storages\session_projcache.json` 让其重建。
 
-> 更早的 `warmup` preset 有同样的 bug。若机器上装过它，可一并更新其插件文件：
->
-> ```powershell
-> Copy-Item .\warmupbetter\warmup-bootstrap.mjs "$env:DSH_HOME\.agent-presets\warmup\warmup-bootstrap.mjs" -Force
-> ```
-
 ## 工作机制
 
-- 第一轮：固定 Minimal system prompt，只暴露两个工具（Windows 为 `pwsh` + `str_replace_editor`）；真实用户输入顺延到下一轮。
+- 第一轮：固定 Minimal system prompt，只暴露两个工具（Windows 为 `pwsh` + `str_replace_editor`）；激活模型正确思维链, 用以锚定之后的策略选择路径, 真实用户输入顺延到下一轮。
 - 第二轮起：真实模型 + 完整 Standard 工具目录 + 正常上下文注入。
 
 ## 参考与许可
