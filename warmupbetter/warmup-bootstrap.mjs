@@ -30,6 +30,8 @@
  * abort skips the warmup and the real input proceeds unchanged.
  */
 
+import { randomUUID } from 'node:crypto'
+
 export const name = 'warmup-tool-bootstrap'
 
 /** Prompt assembly must exist before this plugin can narrow the catalog. */

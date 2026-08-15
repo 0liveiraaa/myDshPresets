@@ -26,6 +26,7 @@
 import { readFileSync } from 'node:fs'
 import { isAbsolute } from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { randomUUID } from 'node:crypto'
 
 export const name = 'warmup-replay'
 
