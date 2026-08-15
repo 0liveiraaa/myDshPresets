@@ -16,9 +16,41 @@
 ```powershell
 .\install-presets.ps1                          # 安装两个
 .\install-presets.ps1 -Presets warmupbetter-replay
+.\install-presets.ps1 -Update                  # 更新已安装的版本（覆盖前自动备份）
 ```
 
-脚本会把 preset 复制到 `%USERPROFILE%\.dsh\.agent-presets\`，已存在同名目录时跳过、不覆盖。安装后重启 dsh，新建 session 并选择对应 preset。
+脚本会把 preset 复制到 `%USERPROFILE%\.dsh\.agent-presets\`。已存在同名目录时默认跳过、不覆盖；`-Update` 会先把旧目录备份到 `%USERPROFILE%\.dsh\.agent-presets-backup\`，再覆盖源文件。安装后重启 dsh，新建 session 并选择对应 preset。
+
+## 升级已安装版本并修复旧会话
+
+在 `c844c2c` 之前安装过 preset 的用户：旧版本注入的 warmup 消息缺 `id`，会导致**已经产生的会话历史无法加载**。更新 preset 只对之后的新会话生效，旧会话日志需要离线回填。请按顺序操作：
+
+1. **完全退出 dsh**（会话日志正在被追加时不能改写）。
+2. 备份会话数据：
+
+   ```powershell
+   Copy-Item -Recurse "$env:DSH_HOME\sessions" "$env:DSH_HOME\sessions.backup-$(Get-Date -Format yyyyMMdd-HHmmss)"
+   ```
+
+   如果 `$env:DSH_HOME` 为空，把路径换成 `$HOME\.dsh`。
+3. 更新 preset 文件并重启前先修复历史：
+
+   ```powershell
+   .\install-presets.ps1 -Update
+   node .\repair-warmup-sessions.mjs --dry-run   # 先看会修哪些会话，只读
+   node .\repair-warmup-sessions.mjs             # 实际回填缺失的 id（每个日志旁留 .bak）
+   ```
+
+   自定义 DSH home 时给修复脚本传 `--root`，例如 `node .\repair-warmup-sessions.mjs --root D:\other-dsh-home`。
+4. 重启 dsh，打开旧的 warmupbetter / warmupbetter-replay 会话验证历史能正常加载；新建会话检查首个 warmup `user/message` 已带 `id`。
+
+修复脚本只改一种记录：`user/message` 中 `source.kind === 'plugin'` 且 `source.plugin` 为 `warmup-replay` / `warmup-tool-bootstrap`、同时 `data.id` 缺失或为空的 warmup 消息，给它补一个 UUID；其余字节保持原样。若 dsh 侧仍显示旧缓存（通常不会），可删除 `$env:DSH_HOME\storages\session_projcache.json` 让其重建。
+
+> 更早的 `warmup` preset 有同样的 bug。若机器上装过它，可一并更新其插件文件：
+>
+> ```powershell
+> Copy-Item .\warmupbetter\warmup-bootstrap.mjs "$env:DSH_HOME\.agent-presets\warmup\warmup-bootstrap.mjs" -Force
+> ```
 
 ## 工作机制
 
