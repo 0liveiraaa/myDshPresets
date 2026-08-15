@@ -6,8 +6,8 @@
 
 | Preset | 说明 | 适用场景 |
 |---|---|---|
-| `warmupbetter` | 首轮由真实模型生成一次长 COT 热身，随后恢复正常任务 | 希望每次热身内容都新鲜生成 |
-| `warmupbetter-replay` | 首轮重放一段预录制的 COT + 回复，不调用模型，随后恢复正常任务 | **推荐**：首轮固定、省一次调用、轨迹锚定稳定 |
+| `warmupbetter` | 首轮由真实模型生成一次长 COT 热身，随后恢复正常任务 | 希望每次热身内容都新鲜生成,**使用deepseek官方接口的用户使用该项** |
+| `warmupbetter-replay` | 首轮重放一段预录制的 COT + 回复，不调用模型，随后恢复正常任务 | **OPENCODE用户推荐**：首轮固定、省一次调用、轨迹锚定稳定 |
 
 推荐默认使用 `warmupbetter-replay`。它重放的 COT 和回复来自一次真实的 Warmup Better 会话，保存在 `warmupbetter-replay/replay.json`，完全公开；已在复杂 AGENTS.md/skill 注入下保持 minimal-like 轨迹（当前为单环境观察，尚未跑正式 benchmark）。
 
