@@ -157,9 +157,13 @@ export function apply(ctx, config) {
       ctx.logger.warn('%s: no provider/model route; skipping the warmup round', name)
       return decision
     }
-    for (const claimed of messages) agent.inbox.prepend('next-turn', claimed)
-    if (chunks !== undefined && agent.session?.id !== undefined) replaySessions.add(agent.session.id)
-    const warmup = { role: 'user', content: [{ type: 'text', text: message }], source: { kind: 'plugin', plugin: name } }
+    for (let index = messages.length - 1; index >= 0; index--) agent.inbox.prepend('next-turn', messages[index])
+    if (chunks !== undefined && agent.session?.id !== undefined) {
+      const sid = agent.session.id
+      replaySessions.add(sid)
+      signal.addEventListener('abort', () => replaySessions.delete(sid), { once: true })
+    }
+    const warmup = { id: randomUUID(), role: 'user', content: [{ type: 'text', text: message }], source: { kind: 'plugin', plugin: name } }
     ctx.logger.info('%s: warmup round queued as turn %d step %d; real input deferred to the next turn', name, turn, step)
     return { kind: 'enter', messages: [warmup] }
   }, { prepend: true })
