@@ -12,6 +12,7 @@
 推荐默认使用 `warmupbetter-replay`。它重放的 COT 和回复来自一次真实的 Warmup Better 会话，保存在 `warmupbetter-replay/replay.json`，完全公开；已在复杂 AGENTS.md/skill 注入下保持 minimal-like 轨迹（当前为单环境观察，尚未跑正式 benchmark）。
 
 ## 安装
+**如果存在兼容性问题,可以直接打开deepseek创造模式安装**
 
 ```powershell
 .\install-presets.ps1                          # 安装两个
