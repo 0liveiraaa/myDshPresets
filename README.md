@@ -1,57 +1,32 @@
 # dsh-preset-reference
 
-DeepSeek Harness 用户级 agent preset 的发布目录。里面直接包含两个可直接安装的自研 preset（`warmupbetter`、`warmupbetter-replay`），并记录两个上游参考仓库、相互关系与发布检查清单。
+两个可安装的 DeepSeek Harness agent preset，给每个新会话加一个纯 Minimal 的 warmup 轮，避免首个模型请求被 AGENTS.md/CLAUDE.md 和 skill 注入污染。
 
-## 安装（给别人用）
+## 包含的 preset
+
+| Preset | 说明 | 适用场景 |
+|---|---|---|
+| `warmupbetter` | 首轮由真实模型生成一次长 COT 热身，随后恢复正常任务 | 希望每次热身内容都新鲜生成 |
+| `warmupbetter-replay` | 首轮重放一段预录制的 COT + 回复，不调用模型，随后恢复正常任务 | **推荐**：首轮固定、省一次调用、轨迹锚定稳定 |
+
+推荐默认使用 `warmupbetter-replay`。它重放的 COT 和回复来自一次真实的 Warmup Better 会话，保存在 `warmupbetter-replay/replay.json`，完全公开；已在复杂 AGENTS.md/skill 注入下保持 minimal-like 轨迹（当前为单环境观察，尚未跑正式 benchmark）。
+
+## 安装
 
 ```powershell
-# 在本目录执行；已存在同名 preset 时跳过，不会覆盖
-.\install-presets.ps1
-
-# 只装其中一个
-.\install-presets.ps1 -Presets warmupbetter
+.\install-presets.ps1                          # 安装两个
 .\install-presets.ps1 -Presets warmupbetter-replay
 ```
 
-安装后重启 dsh，新建 session，在 preset 选择器里选 **Warmup Better** 或 **Warmup Better Replay**。也可以手动把整个子目录复制到：
+脚本会把 preset 复制到 `%USERPROFILE%\.dsh\.agent-presets\`，已存在同名目录时跳过、不覆盖。安装后重启 dsh，新建 session 并选择对应 preset。
 
-```text
-%USERPROFILE%\.dsh\.agent-presets\
-```
+## 工作机制
 
-## 参考仓库
+- 第一轮：固定 Minimal system prompt，只暴露两个工具（Windows 为 `pwsh` + `str_replace_editor`）；真实用户输入顺延到下一轮。
+- 第二轮起：真实模型 + 完整 Standard 工具目录 + 正常上下文注入。
 
-| 仓库 | 作用 |
-|---|---|
-| https://github.com/YeEeck/dsh-pristine | `warmup`（显示名 Pristine）的参考实现：保证首个 model request 处于纯 Minimal 状态 |
-| https://github.com/xiaobright/dsh-anchored-standard | `anchored-standard`：首轮两工具锚定，首个 tool/call 后恢复完整 Standard 目录 |
+## 参考与许可
 
-## 本目录包含的 preset
-
-| 子目录 | 显示名 | 机制 | 第一轮是否调用真实模型 |
-|---|---|---|---|
-| `./warmupbetter` | Warmup Better | 纯 Minimal 首请求 + 长 COT 热身消息 | 是 |
-| `./warmupbetter-replay` | Warmup Better Replay | 首轮由 `replay.json` 重放录制好的 COT + 回复，短路 `llm/stream` | 否 |
-
-每个子目录自带 `LICENSE.deepseek-harness`（MIT）。
-
-## 相互关系的备忘
-
-- `warmup` / `warmupbetter`：同一个“warmup 轮替换”机制，差别只在 warmup 消息文本。
-- `warmupbetter-replay`：继承 `warmupbetter` 的全部组合，但第一轮不是生成，而是重放一次真实 `warmupbetter` session 记录下来的 `reasoning` 和可见回复；第二轮起恢复真实模型和完整工具目录。
-- `anchored-standard`：思路不同——首个请求用两工具建立轨迹，第一次工具调用后**同一任务内**扩到 25 项工具；`warmupbetter-replay` 是**整个 warmup turn** 用两工具重放，下一 turn 才开始真实任务。
-- 已验证：复杂 AGENTS.md/skill 注入后，`warmupbetter-replay` 仍能保持 minimal-like 轨迹（`let me=0`、`we` 主导）。该结论目前是单环境观察，尚未跑 Project2 V4.1b 计分。
-
-## 发布 / 提 PR 前检查清单
-
-- [x] 补 README：机制、与 Pristine / anchored-standard 的差异、安装方法。
-- [x] 补许可证：每个 preset 子目录带 `LICENSE.deepseek-harness`（MIT）。
-- [x] `replay.json` 隐私检查：无绝对路径、用户名、API key；**决定公开完整 COT**。
-- [ ] 提 PR 前先看目标仓库 scope；不确定时先开 issue 说明设计再 PR。
-- [ ] 证据口径写清楚：n=1 观察 ≠ 跨题普适；后续补一次 Project2 跑分作为硬证据。
-
-## 相关评测上下文
-
-- Project2 V4.1b：`modeltest` 本地评测套件
-- anchored-standard 在 Project2 上：98 / 99，worst 98（见 modeltest 的 V4.1b 成绩榜）
-- warmupbetter-replay：尚未进入 Project2 正式计分。
+- Pristine 思路参考 [YeEeck/dsh-pristine](https://github.com/YeEeck/dsh-pristine)。
+- Anchored Standard 思路参考 [xiaobright/dsh-anchored-standard](https://github.com/xiaobright/dsh-anchored-standard)。
+- 基于 DeepSeek Harness 的 Standard/Minimal preset 修改，MIT 许可（各子目录内含 `LICENSE.deepseek-harness`）。
